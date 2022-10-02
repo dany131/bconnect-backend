@@ -1,10 +1,39 @@
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { Module } from "@nestjs/common";
+import { MongooseModule } from "@nestjs/mongoose";
+import { APP_GUARD } from "@nestjs/core";
+import { AtGuard, RolesGuard } from "./common/guards";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { configuration } from "./config";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+
 
 @Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [ // Configuration
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: `${process.cwd()}/src/config/env/${process.env.NODE_ENV}.env`,
+      load: [configuration]
+    }),
+    // DB connection
+    MongooseModule.forRootAsync({
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get("MONGO_URI")
+      }),
+      inject: [ConfigService]
+    }),
+    // Request rate limiting - 50 requests per IP in 1 minute (60 seconds)
+    ThrottlerModule.forRoot({
+      ttl: 60,
+      limit: 50
+    })
+    // Routes
+  ],
+  controllers: [],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: AtGuard },
+    { provide: APP_GUARD, useClass: RolesGuard }
+  ]
 })
-export class AppModule {}
+export class AppModule {
+}
