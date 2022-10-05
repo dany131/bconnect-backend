@@ -31,19 +31,14 @@ export class GeneratorsHelper {
   }
 
   // JWT Token Generator
-  async getTokens(userId: string, role: string) {
+  async getTokens(userId: string, createdAt: string) {
     const atSecret = this.configService.get<string>("AT_STRATEGY");
-    const rtSecret = this.configService.get<string>("RT_STRATEGY");
-
-    const [at, rt] = await Promise.all([
-      this.jwtService.signAsync({ sub: userId, role },
-        { secret: atSecret, expiresIn: "1h" }),
-      this.jwtService.signAsync({ sub: userId, role },
-        { secret: rtSecret, expiresIn: "7d" })
+    const [at] = await Promise.all([
+      this.jwtService.signAsync({ sub: userId, createdAt },
+        { secret: atSecret, expiresIn: "4h" })
     ]);
     return {
-      access_token: at,
-      refresh_token: rt
+      access_token: at
     };
   }
 

@@ -1,10 +1,11 @@
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 import { APP_GUARD } from "@nestjs/core";
-import { AtGuard, RolesGuard } from "./common/guards";
+import { AtGuard } from "./common/guards";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { configuration } from "./config";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { AuthModule } from "./routes/auth/auth.module";
 
 
 @Module({
@@ -25,14 +26,14 @@ import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
     ThrottlerModule.forRoot({
       ttl: 60,
       limit: 50
-    })
+    }),
     // Routes
+    AuthModule
   ],
   controllers: [],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AtGuard },
-    { provide: APP_GUARD, useClass: RolesGuard }
   ]
 })
 export class AppModule {

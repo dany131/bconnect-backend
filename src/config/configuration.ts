@@ -6,5 +6,5 @@ export const configuration = () => ({
   AT_STRATEGY: process.env.AT_STRATEGY,
   RT_STRATEGY: process.env.RT_STRATEGY,
   MEDIA_PATH: process.env.MEDIA_PATH,
-  APP_URL: process.env.APP_URL
+  REMOTE_BASE_URL: process.env.REMOTE_BASE_URL
 });
