@@ -4,7 +4,6 @@ export const configuration = () => ({
   MONGO_URI: process.env.MONGO_URI,
   VERSION: process.env.VERSION,
   AT_STRATEGY: process.env.AT_STRATEGY,
-  RT_STRATEGY: process.env.RT_STRATEGY,
   MEDIA_PATH: process.env.MEDIA_PATH,
   REMOTE_BASE_URL: process.env.REMOTE_BASE_URL
 });
