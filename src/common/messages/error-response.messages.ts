@@ -7,5 +7,18 @@ export const ErrorResponseMessages = {
   ACCESS_DENIED: "Access Denied",
   INVALID_CODE: "Invalid verification code",
   ACCOUNT_VERIFIED: "Account is already verified",
-  EMPTY_FILE: "File can't be empty"
+  EMPTY_FILE: "File can't be empty",
+  NOT_SERVICE: "Service does not exists",
+  NOT_PROFESSIONAL: "Professional does not exists",
+  NOT_EXISTS: "Does not exists",
+  ALREADY_EXISTS: "Already exists",
+  NOT_PROMO_CODE: "Promo code does not exists",
+  NO_WORKING_HOURS: "Business working hours haven't been set up",
+  NO_WORK_ON_DAY: "Business not works on",
+  INVALID_BOOKING_TIME: "Please choose valid booking time",
+  PROFESSIONAL_NOT_EXISTS: "Professional does not exists",
+  SERVICE_NOT_OFFERED: "Service not offered by professional",
+  PROFESSIONAL_NOT_AVAILABLE: "Professional not available on",
+  WORK_SCHEDULE: "There can be only one work schedule on a day for professional",
+  BOOKING_EXCEEDING_BUSINESS: "Your booking is exceeding business working hours"
 };

@@ -3,4 +3,6 @@ export const SuccessResponseMessages = {
   LOGIN: "Login successfully",
   LOGOUT: "Logged out successfully",
   SUCCESS_GENERAL: "Success",
+  DELETED: "Deleted successfully",
+  UPDATED: "Updated successfully"
 };

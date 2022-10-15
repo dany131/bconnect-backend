@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsNumber, IsString, Length } from "class-validator";
+import { IsEmail, IsNotEmpty, IsString, Length } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 
 
@@ -20,10 +20,5 @@ export class SignupDto {
   @IsString()
   @ApiProperty({ description: "Phone number of the user" })
   phoneNumber: string;
-
-  @IsNotEmpty()
-  @IsNumber()
-  @ApiProperty({ description: "Numeric Business id for the customer" })
-  businessId: number;
 
 }

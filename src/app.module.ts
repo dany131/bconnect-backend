@@ -6,6 +6,10 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { configuration } from "./config";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { AuthModule } from "./routes/auth/auth.module";
+import { ServicesModule } from "./routes/services/services.module";
+import { ProfessionalModule } from "./routes/professional/professional.module";
+import { BusinessSettingModule } from "./routes/business-setting/business-setting.module";
+import { CustomerModule } from "./routes/customer/customer.module";
 
 
 @Module({
@@ -28,12 +32,16 @@ import { AuthModule } from "./routes/auth/auth.module";
       limit: 50
     }),
     // Routes
-    AuthModule
+    AuthModule,
+    ServicesModule,
+    ProfessionalModule,
+    BusinessSettingModule,
+    CustomerModule
   ],
   controllers: [],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
-    { provide: APP_GUARD, useClass: AtGuard },
+    { provide: APP_GUARD, useClass: AtGuard }
   ]
 })
 export class AppModule {

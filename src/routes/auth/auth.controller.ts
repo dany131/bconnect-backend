@@ -1,11 +1,13 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from "@nestjs/common";
+import { Body, Controller, HttpCode, HttpStatus, ParseIntPipe, Post, Query } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { Public } from "../../common/decorators";
 import { ErrorResponseMessages, SuccessResponseMessages } from "../../common/messages";
 import { LoginDto, SignupDto } from "../../dto/auth";
-import { ApiResponse } from "@nestjs/swagger";
+import { ApiResponse, ApiTags } from "@nestjs/swagger";
+import { BusinessIdDto } from "../../dto/query-params";
 
 
+@ApiTags("Auth")
 @Controller("auth")
 export class AuthController {
 
@@ -17,8 +19,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiResponse({ status: 200, description: SuccessResponseMessages.SIGNUP })
   @ApiResponse({ status: 400, description: ErrorResponseMessages.EMAIL_EXISTS })
-  async signUp(@Body() reqBody: SignupDto) {
-    return await this.authService.signUp(reqBody);
+  async signUp(@Query() query: BusinessIdDto, @Body() reqBody: SignupDto) {
+    return await this.authService.signUp(query.businessId, reqBody);
   }
 
   @Public()
@@ -29,8 +31,8 @@ export class AuthController {
     status: 400,
     description: `${ErrorResponseMessages.USER_NOT_EXISTS} or ${ErrorResponseMessages.INVALID_PASSWORD}`
   })
-  async login(@Body() reqBody: LoginDto) {
-    return await this.authService.login(reqBody);
+  async login(@Query() query: BusinessIdDto, @Body() reqBody: LoginDto) {
+    return await this.authService.login(query.businessId, reqBody);
   }
 
 }

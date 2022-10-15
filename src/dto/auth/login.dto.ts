@@ -14,11 +14,6 @@ export class LoginDto {
   @ApiProperty({ description: "Minimum 8 characters password of the user" })
   password: string;
 
-  @IsNotEmpty()
-  @IsNumber()
-  @ApiProperty({ description: "Numeric business id" })
-  businessId: number;
-
   @IsEnum(Role, { message: "Invalid role" })
   @ApiProperty({ description: "Must be Customer or Business" })
   role: string;

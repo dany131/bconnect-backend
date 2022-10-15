@@ -76,4 +76,48 @@ export class DateHelper {
     return { startDate, endDate };
   }
 
+  // Day from UTC datetime
+  public dayFromDate(dateTime: string): string {
+    const onlyDate = dateTime.split("T")[0];
+    const dateArray = onlyDate.split("-");
+    const intArray = dateArray.map(e => Number(e));
+    return DateTime.local(intArray[0], intArray[1], intArray[2]).weekdayLong;
+  }
+
+  // Military time form UTC datetime
+  public militaryTimeFromUTC(dateTime: string): string {
+    const time = dateTime.split("T")[1];
+    const onlyTime = time.split("+")[0];
+    const hoursAndMinutes = onlyTime.split(":");
+    return `${hoursAndMinutes[0]}:${hoursAndMinutes[1]}`;
+  }
+
+  // Is booking time is between, booking start and end time in military format, and booking time UTC date time
+  public isBookingTimeValid(scheduleStart: string, scheduleEnd: string, bookingTime: string): boolean {
+    scheduleStart = `${scheduleStart}:00`;
+    scheduleEnd = `${scheduleEnd}:00`;
+    const time = bookingTime.split("T")[1];
+    const onlyTime = time.split(".")[0];
+
+    const startInMillis = Number(scheduleStart.split(":")[0]) * 3600000 + Number(scheduleStart.split(":")[1]) * 60000 + Number(scheduleStart.split(":")[2]) * 1000;
+    const endInMillis = Number(scheduleEnd.split(":")[0]) * 3600000 + Number(scheduleEnd.split(":")[1]) * 60000 + Number(scheduleEnd.split(":")[2]) * 1000;
+    const bookingStartInMillis = Number(onlyTime.split(":")[0]) * 3600000 + Number(onlyTime.split(":")[1]) * 60000 + Number(onlyTime.split(":")[2]) * 1000;
+    return (bookingStartInMillis >= startInMillis && bookingStartInMillis <= endInMillis);
+  }
+
+  // Is total duration in business hours
+  public isValidTotalDuration(businessScheduleStart: string, businessScheduleEnd: string,
+                              bookingStartTime: string, serviceDuration: number): boolean {
+    businessScheduleStart = `${businessScheduleStart}:00`;    // for eg - 08:50:00
+    businessScheduleEnd = `${businessScheduleEnd}:00`;        // for eg - 08:50:00
+    const startTimeAfterDuration = DateTime.fromISO(bookingStartTime).plus({ minute: serviceDuration }).toUTC().toISO();
+    const time = startTimeAfterDuration.split("T")[1];
+    const onlyTime = time.split(".")[0];            // for eg - 08:50:00
+
+    const startInMillis = Number(businessScheduleStart.split(":")[0]) * 3600000 + Number(businessScheduleStart.split(":")[1]) * 60000 + Number(businessScheduleStart.split(":")[2]) * 1000;
+    const endInMillis = Number(businessScheduleEnd.split(":")[0]) * 3600000 + Number(businessScheduleEnd.split(":")[1]) * 60000 + Number(businessScheduleEnd.split(":")[2]) * 1000;
+    const bookingTotalInMillis = Number(onlyTime.split(":")[0]) * 3600000 + Number(onlyTime.split(":")[1]) * 60000 + Number(onlyTime.split(":")[2]) * 1000;
+    return (bookingTotalInMillis >= startInMillis && bookingTotalInMillis <= endInMillis);
+  }
+
 }

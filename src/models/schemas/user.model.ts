@@ -18,9 +18,6 @@ export const UserSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  // verificationCode: {
-  //   type: String
-  // },
   profilePicture: {
     type: String,
     required: true
@@ -37,7 +34,6 @@ export interface UserModel extends mongoose.Document {
   email: string;
   password: string;
   phoneNumber: string;
-  verificationCode: string;
   profilePicture: string;
   businessId: number;
 }

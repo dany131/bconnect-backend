@@ -21,8 +21,8 @@ export class AuthService {
   }
 
   // Customer will be unique for a business
-  async signUp(signUpObj: SignupDto) {
-    const { userName, email, password, phoneNumber, businessId } = signUpObj;
+  async signUp(businessId: number, signUpObj: SignupDto) {
+    const { userName, email, password, phoneNumber } = signUpObj;
     const userExists = await this.User.findOne({ email, businessId });
     if (userExists) throw new BadRequestException(ErrorResponseMessages.EMAIL_EXISTS);
     const newUser: any = new this.User({
@@ -31,7 +31,6 @@ export class AuthService {
       password,
       phoneNumber,
       businessId,
-      // verificationCode: "",
       profilePicture: "placeholder.png"
     });
     newUser.password = await this.generator.hashData(password);
@@ -42,10 +41,10 @@ export class AuthService {
     return { message: SuccessResponseMessages.SIGNUP, data: { user: newUser, tokens } };
   }
 
-  async login(loginObj: LoginDto) {
+  async login(businessId: number, loginObj: LoginDto) {
     let user: any;
     let tokens: any;
-    const { email, password, businessId, role } = loginObj;
+    const { email, password, role } = loginObj;
     if (role === Role.Customer) {
       user = await this.User.findOne({ email, businessId });
       if (!user) throw new BadRequestException(ErrorResponseMessages.USER_NOT_EXISTS);
@@ -88,6 +87,5 @@ export class AuthService {
     }
     return { message: SuccessResponseMessages.LOGIN, data: { user, tokens } };
   }
-
 
 }
