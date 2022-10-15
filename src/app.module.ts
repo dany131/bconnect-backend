@@ -46,5 +46,4 @@ import { CustomerModule } from "./routes/customer/customer.module";
   ]
 })
 export class AppModule {
-  // Reset test
 }
