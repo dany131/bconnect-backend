@@ -5,31 +5,52 @@ import { ErrorResponseMessages, SuccessResponseMessages } from "../../common/mes
 import { ProfessionalModel, ServiceModel } from "../../models/schemas";
 import { CreateServiceDto } from "../../dto/services";
 import Mongoose from "mongoose";
+import { nanoid } from "nanoid";
+import * as fs from "fs";
+import { ConfigService } from "@nestjs/config";
 
 
 @Injectable()
 export class ServicesService {
 
   constructor(@InjectModel("Service") private readonly Service: Model<ServiceModel>,
-              @InjectModel("Professional") private readonly Professional: Model<ProfessionalModel>) {
+              @InjectModel("Professional") private readonly Professional: Model<ProfessionalModel>,
+              private readonly configService: ConfigService) {
   }
 
   // Add services
-  async createService(businessId: number, serviceObj: CreateServiceDto) {
+  async createService(businessId: number, serviceObj: CreateServiceDto, file: any) {
+    const path = this.configService.get<string>("MEDIA_PATH");
     const { name, durationStarting, durationEnding } = serviceObj;
-    const service: any = new this.Service({ name, durationStarting, durationEnding, businessId });
+    let media = "service-placeholder.png";
+    if (file) {
+      const mimeType = file.mimetype.split("/");
+      const fileName = `${nanoid()}.` + mimeType[1];
+      fs.writeFileSync(path + fileName, file.buffer, "utf8");
+      media = fileName;
+    }
+    const service: any = new this.Service({ name, media, durationStarting, durationEnding, businessId });
     await service.save();
     return { message: SuccessResponseMessages.SUCCESS_GENERAL, data: { service } };
   }
 
   // Update service
-  async updateService(serviceId: string, serviceObj: CreateServiceDto) {
+  async updateService(serviceId: string, serviceObj: CreateServiceDto, file: any) {
+    const path = this.configService.get<string>("MEDIA_PATH");
     const service = await this.Service.findById(serviceId);
     if (!service) throw new BadRequestException(ErrorResponseMessages.NOT_SERVICE);
     const { name, durationStarting, durationEnding } = serviceObj;
     service.name = name;
     service.durationStarting = durationStarting;
     service.durationEnding = durationEnding;
+    if (file) {
+      const mimeType = file.mimetype.split("/");
+      const fileName = `${nanoid()}.` + mimeType[1];
+      fs.writeFileSync(path + fileName, file.buffer, "utf8");
+      if (service.media !== "service-placeholder.png") fs.unlink(`${path}${service.media}`, (error) => {
+      });
+      service.media = fileName;
+    }
     await service.save();
     return { message: SuccessResponseMessages.UPDATED, data: { service } };
   }

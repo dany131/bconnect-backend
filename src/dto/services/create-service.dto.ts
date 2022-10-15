@@ -1,5 +1,6 @@
-import { IsNotEmpty, IsNumber, Length } from "class-validator";
+import { IsNotEmpty, IsNumber, Length, Min } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
+import { Type } from "class-transformer";
 
 
 export class CreateServiceDto {
@@ -8,13 +9,17 @@ export class CreateServiceDto {
   @ApiProperty({ description: "Name of the service" })
   name: string;
 
-  @IsNotEmpty()
   @IsNumber()
+  @Type(() => Number)
+  @IsNotEmpty()
+  @Min(1)
   @ApiProperty({ description: "Numeric duration starting for the service" })
   durationStarting: number;
 
-  @IsNotEmpty()
   @IsNumber()
+  @Type(() => Number)
+  @IsNotEmpty()
+  @Min(1)
   @ApiProperty({ description: "Numeric duration ending for the service" })
   durationEnding: number;
 

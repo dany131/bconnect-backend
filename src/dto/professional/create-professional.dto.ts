@@ -1,5 +1,5 @@
 import {
-  ArrayMinSize,
+  ArrayMinSize, ArrayUnique,
   IsArray,
   IsMongoId, IsNotEmpty,
   Length, ValidateNested
@@ -15,9 +15,9 @@ export class CreateProfessionalDto {
   @ApiProperty({ description: "Name of the professional" })
   name: string;
 
-  @IsArray()
+  // @IsArray()
   @IsMongoId({ each: true })
-  @ArrayMinSize(1)
+  // @ArrayMinSize(1)
   @ApiProperty({ description: "Services for the professional" })
   services: string [];
 

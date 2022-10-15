@@ -1,11 +1,11 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Post, Put, Query } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Post, Put, Query, UploadedFile } from "@nestjs/common";
 import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { ProfessionalService } from "./professional.service";
 import { ErrorResponseMessages, SuccessResponseMessages } from "../../common/messages";
 import { CreateProfessionalDto } from "../../dto/professional";
-import { ValidateMongoId } from "../../common/pipes";
+import { ParseFile, ValidateMongoId } from "../../common/pipes";
 import { PaginationParamsDto } from "../../dto/pagination";
-import { Public } from "../../common/decorators";
+import { ImageUpload, Public } from "../../common/decorators";
 import { BusinessIdDto } from "../../dto/query-params";
 
 
@@ -16,20 +16,25 @@ export class ProfessionalController {
   }
 
   @Post("/")
+  @ImageUpload("media", false)
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth("JWT-auth")
   @ApiResponse({ status: 200, description: SuccessResponseMessages.SUCCESS_GENERAL })
-  async createProfessional(@Query() query: BusinessIdDto, @Body() reqBody: CreateProfessionalDto) {
-    return await this.professionalService.createProfessional(query.businessId, reqBody);
+  async createProfessional(@Query() query: BusinessIdDto,
+                           @Body() reqBody: CreateProfessionalDto,
+                           @UploadedFile() file: Express.Multer.File) {
+    return await this.professionalService.createProfessional(query.businessId, reqBody, file);
   }
 
   @Put("/")
+  @ImageUpload("media", false)
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth("JWT-auth")
   @ApiResponse({ status: 200, description: SuccessResponseMessages.UPDATED })
   async updateProfessional(@Query("professionalId", ValidateMongoId) professionalId: string,
-                           @Body() reqBody: CreateProfessionalDto) {
-    return await this.professionalService.updateProfessional(professionalId, reqBody);
+                           @Body() reqBody: CreateProfessionalDto,
+                           @UploadedFile() file: Express.Multer.File) {
+    return await this.professionalService.updateProfessional(professionalId, reqBody, file);
   }
 
   @Delete("/")

@@ -11,6 +11,10 @@ export const ProfessionalSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  media: {
+    type: String,
+    required: true
+  },
   services: [mongoose.Schema.Types.ObjectId],
   schedule: [
     {
@@ -19,14 +23,6 @@ export const ProfessionalSchema = new mongoose.Schema({
       startTime: { type: String, required: true },
       endTime: { type: String, required: true }
     }]
-  // availabilityStart: {
-  //   type: String,
-  //   required: true
-  // },
-  // availabilityEnd: {
-  //   type: String,
-  //   required: true
-  // },
 
 }, { timestamps: true });
 
@@ -34,9 +30,8 @@ export interface ProfessionalModel extends mongoose.Document {
   _id: mongoose.Schema.Types.ObjectId;
   businessId: number;
   name: string;
+  media: string;
   services: [mongoose.Schema.Types.ObjectId];
   schedule: ProfessionalScheduleInterface[];
-  // availabilityStart: string;
-  // availabilityEnd: string;
 
 }

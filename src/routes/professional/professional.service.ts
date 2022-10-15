@@ -5,6 +5,9 @@ import { ProfessionalModel, ServiceModel } from "../../models/schemas";
 import { CreateProfessionalDto } from "../../dto/professional";
 import { ErrorResponseMessages, SuccessResponseMessages } from "../../common/messages";
 import { ClashHelper } from "../../common/helpers";
+import { ConfigService } from "@nestjs/config";
+import { nanoid } from "nanoid";
+import * as fs from "fs";
 
 
 @Injectable()
@@ -12,29 +15,49 @@ export class ProfessionalService {
 
   constructor(@InjectModel("Professional") private readonly Professional: Model<ProfessionalModel>,
               @InjectModel("Service") private readonly Service: Model<ServiceModel>,
+              private readonly configService: ConfigService,
               private readonly clashHelper: ClashHelper) {
   }
 
   // Add professional
-  async createProfessional(businessId: number, professionalObj: CreateProfessionalDto) {
+  async createProfessional(businessId: number, professionalObj: CreateProfessionalDto, file: any) {
+    const path = this.configService.get<string>("MEDIA_PATH");
     const { name, services, schedule } = professionalObj;
     if (schedule.length) if (this.clashHelper.containsWorkClash(schedule)) throw new BadRequestException(ErrorResponseMessages.WORK_SCHEDULE);
-    const professional = new this.Professional({ businessId, name, services, schedule });
+    let media = "placeholder.png";
+    if (file) {
+      const mimeType = file.mimetype.split("/");
+      const fileName = `${nanoid()}.` + mimeType[1];
+      fs.writeFileSync(path + fileName, file.buffer, "utf8");
+      media = fileName;
+    }
+    const professional = new this.Professional({ businessId, name, media, services, schedule });
     await professional.save();
     return { message: SuccessResponseMessages.SUCCESS_GENERAL, data: { professional } };
   }
 
   // Update professional
-  async updateProfessional(professionalId: string, professionalObj: CreateProfessionalDto) {
+  async updateProfessional(professionalId: string, professionalObj: CreateProfessionalDto, file: any) {
+    const path = this.configService.get<string>("MEDIA_PATH");
     const professional = await this.Professional.findById(professionalId);
     if (!professional) throw new BadRequestException(ErrorResponseMessages.NOT_PROFESSIONAL);
     const { name, services, schedule } = professionalObj;
     if (schedule.length) if (this.clashHelper.containsWorkClash(schedule)) throw new BadRequestException(ErrorResponseMessages.WORK_SCHEDULE);
     let mongoIds: any = [];
-    if (services.length) {
+    if (typeof (services) !== "string" && services.length) {
       services.forEach((service) => {
         mongoIds.push(new mongoose.Types.ObjectId(service));
       });
+    } else {
+      mongoIds.push(new mongoose.Types.ObjectId(services.toString()));
+    }
+    if (file) {
+      const mimeType = file.mimetype.split("/");
+      const fileName = `${nanoid()}.` + mimeType[1];
+      fs.writeFileSync(path + fileName, file.buffer, "utf8");
+      if (professional.media !== "placeholder.png") fs.unlink(`${path}${professional.media}`, (error) => {
+      });
+      professional.media = fileName;
     }
     professional.name = name;
     professional.services = mongoIds;
