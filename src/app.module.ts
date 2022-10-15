@@ -16,7 +16,8 @@ import { CustomerModule } from "./routes/customer/customer.module";
   imports: [ // Configuration
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: `${process.cwd()}/src/config/env/${process.env.NODE_ENV}.env`,
+      // envFilePath: `${process.cwd()}/src/config/env/${process.env.NODE_ENV}.env`,
+      envFilePath: `/home/ubuntu/actions-runner/_work/bconnect-backend/env/${process.env.NODE_ENV}.env`,
       load: [configuration]
     }),
     // DB connection
