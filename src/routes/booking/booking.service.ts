@@ -160,15 +160,137 @@ export class BookingService {
 
   // Get booking by id
   async getBooking(bookingId: string) {
-    const booking = await this.Booking.findById(bookingId);
-    if (!booking) throw new BadRequestException(ErrorResponseMessages.BOOKING_EXISTS);
+    const bookingExists = await this.Booking.findById(bookingId);
+    if (!bookingExists) throw new BadRequestException(ErrorResponseMessages.BOOKING_EXISTS);
+    const booking: any = await this.Booking.aggregate([
+      {
+        $match: {
+          _id: bookingExists._id
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "customerId",
+          foreignField: "_id",
+          as: "customer"
+        }
+      },
+      {
+        $unwind: "$customer"
+      },
+      {
+        $lookup: {
+          from: "professionals",
+          localField: "professionalId",
+          foreignField: "_id",
+          as: "professional"
+        }
+      },
+      {
+        $unwind: "$professional"
+      },
+      {
+        $lookup: {
+          from: "services",
+          localField: "service",
+          foreignField: "_id",
+          as: "service"
+        }
+      },
+      {
+        $unwind: "$service"
+      },
+      {
+        $project: {
+          "__v": 0,
+          "customer.password": 0,
+          "customer.phoneNumber": 0,
+          "customer.businessId": 0,
+          "customer.createdAt": 0,
+          "customer.updatedAt": 0,
+          "customer.__v": 0,
+          "professionalId": 0,
+          "customerId": 0,
+          "professional.schedule": 0,
+          "professional.createdAt": 0,
+          "professional.updatedAt": 0,
+          "professional.businessId": 0,
+          "professional.__v": 0,
+          "service.businessId": 0,
+          "service.createdAt": 0,
+          "service.updatedAt": 0,
+          "service.__v": 0
+        }
+      }
+    ]);
     return { message: SuccessResponseMessages.SUCCESS_GENERAL, data: { booking } };
   }
 
   // Get all business bookings (Returns all confirmed and canceled)
   async getBusinessBookings(businessId: number, page: number, limit: number) {
     const matchingQuery = { businessId };
-    const data = await this.Booking.find(matchingQuery).skip((page - 1) * limit).limit(limit);
+    // const data = await this.Booking.find(matchingQuery).skip((page - 1) * limit).limit(limit);
+    const data: any = await this.Booking.aggregate([
+      {
+        $match: matchingQuery
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "customerId",
+          foreignField: "_id",
+          as: "customer"
+        }
+      },
+      {
+        $unwind: "$customer"
+      },
+      {
+        $lookup: {
+          from: "professionals",
+          localField: "professionalId",
+          foreignField: "_id",
+          as: "professional"
+        }
+      },
+      {
+        $unwind: "$professional"
+      },
+      {
+        $lookup: {
+          from: "services",
+          localField: "service",
+          foreignField: "_id",
+          as: "service"
+        }
+      },
+      {
+        $unwind: "$service"
+      },
+      {
+        $project: {
+          "__v": 0,
+          "customer.password": 0,
+          "customer.phoneNumber": 0,
+          "customer.businessId": 0,
+          "customer.createdAt": 0,
+          "customer.updatedAt": 0,
+          "customer.__v": 0,
+          "professionalId": 0,
+          "customerId": 0,
+          "professional.schedule": 0,
+          "professional.createdAt": 0,
+          "professional.updatedAt": 0,
+          "professional.businessId": 0,
+          "professional.__v": 0,
+          "service.businessId": 0,
+          "service.createdAt": 0,
+          "service.updatedAt": 0,
+          "service.__v": 0
+        }
+      }
+    ]).skip((page - 1) * limit).limit(limit);
     const total: number = await this.Booking.count(matchingQuery);
     const lastPage = Math.ceil(total / limit);
     return { message: SuccessResponseMessages.SUCCESS_GENERAL, data, page, lastPage, total };
@@ -176,8 +298,69 @@ export class BookingService {
 
   // Get all business bookings by service (Only confirmed bookings)
   async getBusinessServiceBookings(businessId: number, serviceId: string, page: number, limit: number) {
-    const matchingQuery = { businessId, service: serviceId, status: BookingStatusEnums.Confirmed };
-    const data = await this.Booking.find(matchingQuery).skip((page - 1) * limit).limit(limit);
+    const service = await this.Service.findById(serviceId);
+    if (!service) throw new BadRequestException(ErrorResponseMessages.NOT_SERVICE);
+    const matchingQuery = { businessId, service: service._id, status: BookingStatusEnums.Confirmed };
+    const data: any = await this.Booking.aggregate([
+      {
+        $match: matchingQuery
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "customerId",
+          foreignField: "_id",
+          as: "customer"
+        }
+      },
+      {
+        $unwind: "$customer"
+      },
+      {
+        $lookup: {
+          from: "professionals",
+          localField: "professionalId",
+          foreignField: "_id",
+          as: "professional"
+        }
+      },
+      {
+        $unwind: "$professional"
+      },
+      {
+        $lookup: {
+          from: "services",
+          localField: "service",
+          foreignField: "_id",
+          as: "service"
+        }
+      },
+      {
+        $unwind: "$service"
+      },
+      {
+        $project: {
+          "__v": 0,
+          "customer.password": 0,
+          "customer.phoneNumber": 0,
+          "customer.businessId": 0,
+          "customer.createdAt": 0,
+          "customer.updatedAt": 0,
+          "customer.__v": 0,
+          "professionalId": 0,
+          "customerId": 0,
+          "professional.schedule": 0,
+          "professional.createdAt": 0,
+          "professional.updatedAt": 0,
+          "professional.businessId": 0,
+          "professional.__v": 0,
+          "service.businessId": 0,
+          "service.createdAt": 0,
+          "service.updatedAt": 0,
+          "service.__v": 0
+        }
+      }
+    ]).skip((page - 1) * limit).limit(limit);
     const total: number = await this.Booking.count(matchingQuery);
     const lastPage = Math.ceil(total / limit);
     return { message: SuccessResponseMessages.SUCCESS_GENERAL, data, page, lastPage, total };
@@ -188,7 +371,66 @@ export class BookingService {
     const utcDateNow = this.dateHelper.utcDateTimeNow();
     const matchingQuery: any = { businessId };
     (isPrevious) ? matchingQuery.endDateTime = { "$lt": utcDateNow } : matchingQuery.startDateTime = { "$gt": utcDateNow };
-    const data = await this.Booking.find(matchingQuery).skip((page - 1) * limit).limit(limit);
+    const data: any = await this.Booking.aggregate([
+      {
+        $match: matchingQuery
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "customerId",
+          foreignField: "_id",
+          as: "customer"
+        }
+      },
+      {
+        $unwind: "$customer"
+      },
+      {
+        $lookup: {
+          from: "professionals",
+          localField: "professionalId",
+          foreignField: "_id",
+          as: "professional"
+        }
+      },
+      {
+        $unwind: "$professional"
+      },
+      {
+        $lookup: {
+          from: "services",
+          localField: "service",
+          foreignField: "_id",
+          as: "service"
+        }
+      },
+      {
+        $unwind: "$service"
+      },
+      {
+        $project: {
+          "__v": 0,
+          "customer.password": 0,
+          "customer.phoneNumber": 0,
+          "customer.businessId": 0,
+          "customer.createdAt": 0,
+          "customer.updatedAt": 0,
+          "customer.__v": 0,
+          "professionalId": 0,
+          "customerId": 0,
+          "professional.schedule": 0,
+          "professional.createdAt": 0,
+          "professional.updatedAt": 0,
+          "professional.businessId": 0,
+          "professional.__v": 0,
+          "service.businessId": 0,
+          "service.createdAt": 0,
+          "service.updatedAt": 0,
+          "service.__v": 0
+        }
+      }
+    ]).skip((page - 1) * limit).limit(limit);
     const total: number = await this.Booking.count(matchingQuery);
     const lastPage = Math.ceil(total / limit);
     return { message: SuccessResponseMessages.SUCCESS_GENERAL, data, page, lastPage, total };
@@ -202,6 +444,61 @@ export class BookingService {
       { "$group": { _id: "$status", count: { $sum: 1 } } }
     ]);
     return { message: SuccessResponseMessages.SUCCESS_GENERAL, data };
+  }
+
+  // Get Upcoming/ Previous bookings by customer ID
+  async getFilteredBookingsByCustomer(customerId: string, isPrevious: boolean, page: number, limit: number) {
+    const customer = await this.User.findById(customerId);
+    if (!customer) throw new BadRequestException(ErrorResponseMessages.USER_NOT_EXISTS);
+    const matchingQuery: any = { customerId: customer._id };
+    const utcDateNow = this.dateHelper.utcDateTimeNow();
+    (isPrevious) ? matchingQuery.endDateTime = { "$lt": utcDateNow } : matchingQuery.startDateTime = { "$gt": utcDateNow };
+    const data: any = await this.Booking.aggregate([
+      {
+        $match: matchingQuery
+      },
+      {
+        $lookup: {
+          from: "professionals",
+          localField: "professionalId",
+          foreignField: "_id",
+          as: "professional"
+        }
+      },
+      {
+        $unwind: "$professional"
+      },
+      {
+        $lookup: {
+          from: "services",
+          localField: "service",
+          foreignField: "_id",
+          as: "service"
+        }
+      },
+      {
+        $unwind: "$service"
+      },
+      {
+        $project: {
+          "__v": 0,
+          "professionalId": 0,
+          "customerId": 0,
+          "professional.schedule": 0,
+          "professional.createdAt": 0,
+          "professional.updatedAt": 0,
+          "professional.businessId": 0,
+          "professional.__v": 0,
+          "service.businessId": 0,
+          "service.createdAt": 0,
+          "service.updatedAt": 0,
+          "service.__v": 0
+        }
+      }
+    ]).skip((page - 1) * limit).limit(limit);
+    const total: number = await this.Booking.count(matchingQuery);
+    const lastPage = Math.ceil(total / limit);
+    return { message: SuccessResponseMessages.SUCCESS_GENERAL, data, page, lastPage, total };
   }
 
 }

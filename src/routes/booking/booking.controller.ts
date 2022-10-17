@@ -46,7 +46,6 @@ export class BookingController {
   @Public()
   @Get("/")
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth("JWT-auth")
   @ApiResponse({ status: 200, description: SuccessResponseMessages.SUCCESS_GENERAL })
   async getBooking(@Query("bookingId", ValidateMongoId) bookingId: string) {
     return await this.bookingService.getBooking(bookingId);
@@ -55,7 +54,6 @@ export class BookingController {
   @Public()
   @Get("business")
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth("JWT-auth")
   @ApiResponse({ status: 200, description: SuccessResponseMessages.SUCCESS_GENERAL })
   async getBusinessBookings(@Query() queryBusiness: BusinessIdDto,
                             @Query() query: PaginationParamsDto) {
@@ -65,7 +63,6 @@ export class BookingController {
   @Public()
   @Get("business/service")
   @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth("JWT-auth")
   @ApiResponse({ status: 200, description: SuccessResponseMessages.SUCCESS_GENERAL })
   async getBusinessServiceBookings(@Query() queryBusiness: BusinessIdDto,
                                    @Query("serviceId", ValidateMongoId) serviceId: string,
@@ -89,6 +86,17 @@ export class BookingController {
   @ApiResponse({ status: 200, description: SuccessResponseMessages.SUCCESS_GENERAL })
   async getBookingStats(@Query() queryBusiness: BusinessIdDto) {
     return await this.bookingService.getBookingStats(queryBusiness.businessId);
+  }
+
+  @Public()
+  @Get("business/filter/customer")
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth("JWT-auth")
+  @ApiResponse({ status: 200, description: SuccessResponseMessages.SUCCESS_GENERAL })
+  async getFilteredBookingsByCustomer(@Query("customerId", ValidateMongoId) customerId: string,
+                                      @Query() queryFilter: FilterBookingsDto,
+                                      @Query() query: PaginationParamsDto) {
+    return await this.bookingService.getFilteredBookingsByCustomer(customerId, queryFilter.isPrevious, query.page, query.limit);
   }
 
 }
