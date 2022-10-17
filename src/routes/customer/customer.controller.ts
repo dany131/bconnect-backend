@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Put, Query } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Put, Query } from "@nestjs/common";
 import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { SuccessResponseMessages } from "../../common/messages";
 import { BusinessIdDto } from "../../dto/query-params";
@@ -6,6 +6,9 @@ import { ValidateMongoId } from "../../common/pipes";
 import { CustomerService } from "./customer.service";
 import { SignupDto } from "../../dto/auth";
 import { ChangePasswordDto } from "../../dto/customer";
+import { Public } from "../../common/decorators";
+import { FilterBookingsDto } from "../../dto/booking";
+import { PaginationParamsDto } from "../../dto/pagination";
 
 
 @ApiTags("Customer")
@@ -42,6 +45,14 @@ export class CustomerController {
                        @Query("customerId", ValidateMongoId) customerId: string,
                        @Query("promoCodeId", ValidateMongoId) promoCodeId: string) {
     return await this.customerService.issuePromoCode(query.businessId, customerId, promoCodeId);
+  }
+
+  @Get("business")
+  @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: 200, description: SuccessResponseMessages.SUCCESS_GENERAL })
+  async getBusinessCustomers(@Query() queryBusiness: BusinessIdDto,
+                             @Query() query: PaginationParamsDto) {
+    return await this.customerService.getBusinessCustomers(queryBusiness.businessId, query.page, query.limit);
   }
 
 }

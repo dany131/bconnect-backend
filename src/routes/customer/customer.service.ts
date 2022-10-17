@@ -53,4 +53,12 @@ export class CustomerService {
     return { message: SuccessResponseMessages.UPDATED, data: { customerPromoCode } };
   }
 
+  // Get business customers
+  async getBusinessCustomers(businessId: number, page: number, limit: number) {
+    const data = await this.User.find({ businessId }).skip((page - 1) * limit).limit(limit);
+    const total: number = await this.User.count({ businessId });
+    const lastPage = Math.ceil(total / limit);
+    return { message: SuccessResponseMessages.SUCCESS_GENERAL, data, page, lastPage, total };
+  }
+
 }
