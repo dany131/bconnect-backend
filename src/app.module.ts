@@ -10,6 +10,7 @@ import { ServicesModule } from "./routes/services/services.module";
 import { ProfessionalModule } from "./routes/professional/professional.module";
 import { BusinessSettingModule } from "./routes/business-setting/business-setting.module";
 import { CustomerModule } from "./routes/customer/customer.module";
+import { BookingModule } from "./routes/booking/booking.module";
 
 
 @Module({
@@ -37,7 +38,8 @@ import { CustomerModule } from "./routes/customer/customer.module";
     ServicesModule,
     ProfessionalModule,
     BusinessSettingModule,
-    CustomerModule
+    CustomerModule,
+    BookingModule
   ],
   controllers: [],
   providers: [
@@ -46,5 +48,5 @@ import { CustomerModule } from "./routes/customer/customer.module";
   ]
 })
 export class AppModule {
-  // reset test
+
 }

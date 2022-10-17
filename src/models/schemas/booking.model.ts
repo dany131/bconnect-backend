@@ -25,6 +25,10 @@ export const BookingSchema = new mongoose.Schema({
   endDateTime: {
     type: String,
     required: true
+  },
+  status: {
+    type: String,
+    required: true
   }
 }, { timestamps: true });
 
@@ -36,4 +40,5 @@ export interface BookingModel extends mongoose.Document {
   service: mongoose.Schema.Types.ObjectId;
   startDateTime: string;
   endDateTime: string;
+  status: string;
 }

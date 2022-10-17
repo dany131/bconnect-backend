@@ -1,6 +1,5 @@
 import {
-  ArrayMinSize,
-  IsArray, IsDateString,
+  IsDateString,
   IsMongoId,
   IsNotEmpty
 } from "class-validator";

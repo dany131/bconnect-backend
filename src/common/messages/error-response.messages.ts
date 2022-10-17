@@ -20,5 +20,7 @@ export const ErrorResponseMessages = {
   SERVICE_NOT_OFFERED: "Service not offered by professional",
   PROFESSIONAL_NOT_AVAILABLE: "Professional not available on",
   WORK_SCHEDULE: "There can be only one work schedule on a day for professional",
-  BOOKING_EXCEEDING_BUSINESS: "Your booking is exceeding business working hours"
+  BOOKING_EXCEEDING_BUSINESS: "Your booking is exceeding business working hours",
+  BOOKING_CLASH: "Booking clash found",
+  BOOKING_EXISTS: "Booking does not exists"
 };
