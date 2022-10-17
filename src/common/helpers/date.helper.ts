@@ -5,85 +5,6 @@ import { DateTime } from "luxon";
 @Injectable()
 export class DateHelper {
 
-  // public utcConverter(dateInISO: string, zone: string): string {
-  //   try {
-  //     const dateTime = dateInISO.split("T");
-  //     const date = dateTime[0].split("-");
-  //     const time = dateTime [1].split(":");
-  //     const dt = DateTime.fromObject({
-  //       year: parseInt(date[0]),
-  //       month: parseInt(date[1]),
-  //       day: parseInt(date[2]),
-  //       hour: parseInt(time[0]),
-  //       minute: parseInt(time[1])
-  //     }, { zone });
-  //     return (dt.toUTC().toISO());
-  //   } catch (error) {
-  //     throw new Error(error.message);
-  //   }
-  // }
-  //
-  // // UTC date today
-  // public utcDateToday() {
-  //   const date = DateTime.now().toFormat("yyyy-MM-dd");
-  //   let dateTime: any = date.split("-");
-  //   dateTime = dateTime.map(Number);
-  //   const startDate = DateTime.utc(dateTime[0], dateTime[1], dateTime[2], 0, 0).toISO();
-  //   const endDate = DateTime.utc(dateTime[0], dateTime[1], dateTime[2], 23, 59).toISO();
-  //   return { startDate, endDate };
-  // }
-  //
-  // // For next month
-  // public nextMonth() {
-  //   let nextMonthStart: any = DateTime.now().endOf("month").plus({ day: 1 });
-  //   let nextMonthEnd: any = nextMonthStart.endOf("month");
-  //   nextMonthStart = nextMonthStart.toFormat("yyyy-MM-dd");
-  //   nextMonthEnd = nextMonthEnd.toFormat("yyyy-MM-dd");
-  //
-  //   let startDateTime: any = nextMonthStart.split("-");
-  //   let endDateTime: any = nextMonthEnd.split("-");
-  //
-  //   startDateTime = startDateTime.map(Number);
-  //   endDateTime = endDateTime.map(Number);
-  //
-  //   const startDate = DateTime.utc(startDateTime[0], startDateTime[1], startDateTime[2], 0, 0).toISO();
-  //   const endDate = DateTime.utc(endDateTime[0], endDateTime[1], endDateTime[2], 23, 59).toISO();
-  //   return { startDate, endDate };
-  // }
-  //
-  // // For this week/month
-  // public startEndDate(unit: any): object {
-  //   const unitStartDate = DateTime.now().startOf(unit).minus({ day: 1 }).toFormat("yyyy-MM-dd");
-  //   const unitEndDate = DateTime.now().endOf(unit).toFormat("yyyy-MM-dd");
-  //
-  //   let startDateTime: any = unitStartDate.split("-");
-  //   let endDateTime: any = unitEndDate.split("-");
-  //
-  //   startDateTime = startDateTime.map(Number);
-  //   endDateTime = endDateTime.map(Number);
-  //
-  //   const startDate = DateTime.utc(startDateTime[0], startDateTime[1], startDateTime[2], 0, 0).toISO();
-  //   const endDate = DateTime.utc(endDateTime[0], endDateTime[1], endDateTime[2], 23, 59).toISO();
-  //   return { startDate, endDate };
-  // }
-  //
-  // // For custom date
-  // public dateToUtc(date: string): object {
-  //   let dateTime: any = date.split("-");
-  //   dateTime = dateTime.map(Number);
-  //   const startDate = DateTime.utc(dateTime[0], dateTime[1], dateTime[2], 0, 0).toISO();
-  //   const endDate = DateTime.utc(dateTime[0], dateTime[1], dateTime[2], 23, 59).toISO();
-  //   return { startDate, endDate };
-  // }
-  //
-  // // Military time form UTC datetime
-  // public militaryTimeFromUTC(dateTime: string): string {
-  //   const time = dateTime.split("T")[1];
-  //   const onlyTime = time.split("+")[0];
-  //   const hoursAndMinutes = onlyTime.split(":");
-  //   return `${hoursAndMinutes[0]}:${hoursAndMinutes[1]}`;
-  // }
-
   // Day from UTC datetime
   public dayFromDate(dateTime: string): string {
     const onlyDate = dateTime.split("T")[0];
@@ -167,4 +88,32 @@ export class DateHelper {
   public utcDateTimeNow() {
     return DateTime.now().toUTC().toISO();
   }
+
+  // Validate professional work schedule in business working hours
+
+  public isValidWorkSchedule(professionalSchedule: any, businessSchedule: any) {
+    let isValid = true;
+    if (professionalSchedule.length) {
+      for (let i = 0; i < professionalSchedule.length; i++) {
+        const weekDaySchedule = businessSchedule.schedule.find(o => o.day === professionalSchedule[i].day);
+        if (!weekDaySchedule) return false;
+        const professionalStart = `${professionalSchedule[i].startTime}:00`;
+        const professionalEnd = `${professionalSchedule[i].endTime}:00`;
+        const businessStart = `${weekDaySchedule.startTime}:00`;
+        const businessEnd = `${weekDaySchedule.endTime}:00`;
+
+        const professionalStartInMillis = Number(professionalStart.split(":")[0]) * 3600000 + Number(professionalStart.split(":")[1]) * 60000 + Number(professionalStart.split(":")[2]) * 1000;
+        const professionalEndInMillis = Number(professionalEnd.split(":")[0]) * 3600000 + Number(professionalEnd.split(":")[1]) * 60000 + Number(professionalEnd.split(":")[2]) * 1000;
+        const businessStartInMillis = Number(businessStart.split(":")[0]) * 3600000 + Number(businessStart.split(":")[1]) * 60000 + Number(businessStart.split(":")[2]) * 1000;
+        const businessEndInMillis = Number(businessEnd.split(":")[0]) * 3600000 + Number(businessEnd.split(":")[1]) * 60000 + Number(businessEnd.split(":")[2]) * 1000;
+        if (!(professionalStartInMillis >= businessStartInMillis && professionalStartInMillis < businessEndInMillis
+          && professionalEndInMillis > businessStartInMillis && professionalEndInMillis <= businessEndInMillis)) {
+          isValid = false;
+          break;
+        }
+      }
+    }
+    return isValid;
+  }
+
 }

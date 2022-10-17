@@ -8,7 +8,7 @@ import { CreateBookingDto, FilterBookingsDto, RescheduleBookingDto } from "../..
 import { PaginationParamsDto } from "../../dto/pagination";
 import { Public } from "../../common/decorators";
 
-@Public()
+
 @ApiTags("Booking")
 @Controller("booking")
 export class BookingController {
@@ -81,6 +81,14 @@ export class BookingController {
                             @Query() queryFilter: FilterBookingsDto,
                             @Query() query: PaginationParamsDto) {
     return await this.bookingService.getFilteredBookings(queryBusiness.businessId, queryFilter.isPrevious, query.page, query.limit);
+  }
+
+  @Get("stats")
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth("JWT-auth")
+  @ApiResponse({ status: 200, description: SuccessResponseMessages.SUCCESS_GENERAL })
+  async getBookingStats(@Query() queryBusiness: BusinessIdDto) {
+    return await this.bookingService.getBookingStats(queryBusiness.businessId);
   }
 
 }

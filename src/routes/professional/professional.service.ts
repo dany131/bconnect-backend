@@ -1,10 +1,10 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import mongoose, { Model } from "mongoose";
-import { ProfessionalModel, ServiceModel } from "../../models/schemas";
+import { ProfessionalModel, ServiceModel, WorkingScheduleModel } from "../../models/schemas";
 import { CreateProfessionalDto } from "../../dto/professional";
 import { ErrorResponseMessages, SuccessResponseMessages } from "../../common/messages";
-import { ClashHelper } from "../../common/helpers";
+import { ClashHelper, DateHelper } from "../../common/helpers";
 import { ConfigService } from "@nestjs/config";
 import { nanoid } from "nanoid";
 import * as fs from "fs";
@@ -15,15 +15,31 @@ export class ProfessionalService {
 
   constructor(@InjectModel("Professional") private readonly Professional: Model<ProfessionalModel>,
               @InjectModel("Service") private readonly Service: Model<ServiceModel>,
+              @InjectModel("WorkingSchedule") private readonly WorkingSchedule: Model<WorkingScheduleModel>,
               private readonly configService: ConfigService,
-              private readonly clashHelper: ClashHelper) {
+              private readonly clashHelper: ClashHelper,
+              private readonly dateHelper: DateHelper) {
   }
 
   // Add professional
   async createProfessional(businessId: number, professionalObj: CreateProfessionalDto, file: any) {
     const path = this.configService.get<string>("MEDIA_PATH");
     const { name, services, schedule } = professionalObj;
+    // Service exists
+    if (typeof (services) !== "string" && services.length) {
+      for (let i = 0; i < services.length; i++) {
+        const serviceExists = await this.Service.findById(services[i]);
+        if (!serviceExists) throw new BadRequestException(ErrorResponseMessages.NOT_SERVICE);
+      }
+    } else {
+      const serviceExists = await this.Service.findById(services);
+      if (!serviceExists) throw new BadRequestException(ErrorResponseMessages.NOT_SERVICE);
+    }
     if (schedule.length) if (this.clashHelper.containsWorkClash(schedule)) throw new BadRequestException(ErrorResponseMessages.WORK_SCHEDULE);
+    // Check if professional work schedule is in business working hours
+    const businessWorkingHours = await this.WorkingSchedule.findOne({ businessId });
+    if (!businessWorkingHours) throw new BadRequestException(ErrorResponseMessages.NO_WORKING_HOURS);
+    if (!(this.dateHelper.isValidWorkSchedule(schedule, businessWorkingHours))) throw new BadRequestException(ErrorResponseMessages.BUSINESS_HOURS_NOT_AVAILABLE);
     let media = "placeholder.png";
     if (file) {
       const mimeType = file.mimetype.split("/");
@@ -43,12 +59,20 @@ export class ProfessionalService {
     if (!professional) throw new BadRequestException(ErrorResponseMessages.NOT_PROFESSIONAL);
     const { name, services, schedule } = professionalObj;
     if (schedule.length) if (this.clashHelper.containsWorkClash(schedule)) throw new BadRequestException(ErrorResponseMessages.WORK_SCHEDULE);
+    // Check if professional work schedule is in business working hours
+    const businessWorkingHours = await this.WorkingSchedule.findOne({ businessId: professional.businessId });
+    if (!businessWorkingHours) throw new BadRequestException(ErrorResponseMessages.NO_WORKING_HOURS);
+    if (!(this.dateHelper.isValidWorkSchedule(schedule, businessWorkingHours))) throw new BadRequestException(ErrorResponseMessages.BUSINESS_HOURS_NOT_AVAILABLE);
     let mongoIds: any = [];
     if (typeof (services) !== "string" && services.length) {
-      services.forEach((service) => {
-        mongoIds.push(new mongoose.Types.ObjectId(service));
-      });
+      for (let i = 0; i < services.length; i++) {
+        const serviceExists = await this.Service.findById(services[i]);
+        if (!serviceExists) throw new BadRequestException(ErrorResponseMessages.NOT_SERVICE);
+        mongoIds.push(new mongoose.Types.ObjectId(services[i]));
+      }
     } else {
+      const serviceExists = await this.Service.findById(services);
+      if (!serviceExists) throw new BadRequestException(ErrorResponseMessages.NOT_SERVICE);
       mongoIds.push(new mongoose.Types.ObjectId(services.toString()));
     }
     if (file) {

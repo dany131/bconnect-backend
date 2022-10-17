@@ -22,5 +22,6 @@ export const ErrorResponseMessages = {
   WORK_SCHEDULE: "There can be only one work schedule on a day for professional",
   BOOKING_EXCEEDING_BUSINESS: "Your booking is exceeding business working hours",
   BOOKING_CLASH: "Booking clash found",
-  BOOKING_EXISTS: "Booking does not exists"
+  BOOKING_EXISTS: "Booking does not exists",
+  BUSINESS_HOURS_NOT_AVAILABLE: "Working hours not available for these timings"
 };

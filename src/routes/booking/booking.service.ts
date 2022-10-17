@@ -195,6 +195,13 @@ export class BookingService {
   }
 
   // Booking statistics
-
+  async getBookingStats(businessId: number) {
+    const matchingQuery: any = { businessId };
+    const data = await this.Booking.aggregate([
+      { $match: matchingQuery },
+      { "$group": { _id: "$status", count: { $sum: 1 } } }
+    ]);
+    return { message: SuccessResponseMessages.SUCCESS_GENERAL, data };
+  }
 
 }
