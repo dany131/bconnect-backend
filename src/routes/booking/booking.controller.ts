@@ -99,4 +99,13 @@ export class BookingController {
     return await this.bookingService.getFilteredBookingsByCustomer(customerId, queryFilter.isPrevious, query.page, query.limit);
   }
 
+  @Public()
+  @Get("stats/customer")
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth("JWT-auth")
+  @ApiResponse({ status: 200, description: SuccessResponseMessages.SUCCESS_GENERAL })
+  async getCustomerBookingStats(@Query("customerId", ValidateMongoId) customerId: string) {
+    return await this.bookingService.getCustomerBookingStats(customerId);
+  }
+
 }

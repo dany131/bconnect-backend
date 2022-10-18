@@ -1,25 +1,22 @@
 import {
-  IsDateString,
-  IsMongoId,
-  IsNotEmpty
+  ArrayMinSize,
+  IsArray,
+  IsNotEmpty, ValidateNested
 } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
+import { Type } from "class-transformer";
+import { BookingDto } from "./booking.dto";
 
 
 export class CreateBookingDto {
 
-  @IsMongoId()
-  @ApiProperty({ description: "Professional id for the booking" })
-  professionalId: string;
-
-  @IsMongoId()
-  @ApiProperty({ description: "Services id for the booking" })
-  service: string;
-
-  @IsNotEmpty()
-  @IsDateString()
-  @ApiProperty({ description: "Booking start date time in UTC ISO format for the booking" })
-  startDateTime: string;
+  @IsArray()
+  @IsNotEmpty({ each: true })
+  @ValidateNested({ each: true })
+  @Type(() => BookingDto)
+  @ArrayMinSize(1)
+  @ApiProperty({ description: "Booking array" })
+  bookings: BookingDto[];
 
 }
 

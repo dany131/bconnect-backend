@@ -21,73 +21,79 @@ export class BookingService {
   }
 
   // Create booking
-  async createBooking(businessId: number, customerId: string, bookingObj: CreateBookingDto) {
+  async createBooking(businessId: number, customerId: string, bookingObjArray: CreateBookingDto) {
     const customer = await this.User.findById(customerId);
     if (!customer) throw new BadRequestException(ErrorResponseMessages.USER_NOT_EXISTS);
-
-    const { professionalId, service, startDateTime } = bookingObj;
-    const workingHours = await this.WorkingSchedule.findOne({ businessId });
-    if (!workingHours) throw new BadRequestException(ErrorResponseMessages.NO_WORKING_HOURS);
-    const professional = await this.Professional.findById(professionalId);
-    if (!professional) throw new BadRequestException(ErrorResponseMessages.PROFESSIONAL_NOT_EXISTS);
-    // Check if business works on that day
-    const weekDay = this.dateHelper.dayFromDate(startDateTime);
-    const weekDaySchedule = workingHours.schedule.find(o => o.day === weekDay);
-    if (!weekDaySchedule) throw new BadRequestException(`${ErrorResponseMessages.NO_WORK_ON_DAY} ${weekDay}`);
-    // Compare times -> start time should be in between working hours
-    if (!this.dateHelper.isBookingTimeValid(weekDaySchedule.startTime, weekDaySchedule.endTime, startDateTime)) throw new BadRequestException(ErrorResponseMessages.INVALID_BOOKING_TIME);
-    // Check if total duration of booking is in business working days
-    const serviceExists = await this.Service.findById(service);
-    if (!serviceExists) throw new BadRequestException(ErrorResponseMessages.NOT_SERVICE);
-    const endDateTime = this.dateHelper.bookingEndTimeCalculator(startDateTime, serviceExists.durationEnding);
-    if (!this.dateHelper.isValidTotalDuration(weekDaySchedule.startTime, weekDaySchedule.endTime, endDateTime)) {
-      throw new BadRequestException(ErrorResponseMessages.BOOKING_EXCEEDING_BUSINESS);
-    }
-    // Check if service is offered by that professional
-    const serviceId: any = new Mongoose.Types.ObjectId(service);
-    if (!professional.services.includes(serviceId)) throw new BadRequestException(ErrorResponseMessages.SERVICE_NOT_OFFERED);
-    // Check if professional is available on that day
-    const professionalWorkingSchedule = professional.schedule.find(o => o.day === weekDay && o.type === ScheduleTypeEnums.Work);
-    if (!professionalWorkingSchedule) throw new BadRequestException(`${ErrorResponseMessages.PROFESSIONAL_NOT_AVAILABLE} ${weekDay}`);
-    // Check if professional is available on that start end time (Work schedule for a professional will only be one but can be multiple breaks)
-    const professionalBreakSchedule = professional.schedule.filter((obj) => {
-      return obj.day === weekDay && obj.type === ScheduleTypeEnums.Break;
-    });
-    if (!this.dateHelper.isProfessionalAvailable(professionalWorkingSchedule, professionalBreakSchedule, startDateTime, endDateTime)) {
-      throw new BadRequestException(`${ErrorResponseMessages.PROFESSIONAL_NOT_AVAILABLE} this booking time`);
-    }
-    // DB clash find query
-    const matchingQuery =
-      {
-        businessId,
-        professionalId,
-        status: BookingStatusEnums.Confirmed,
-        $or: [
+    const { bookings } = bookingObjArray;
+    let allBookings = [];
+    if (bookings.length) {
+      for (let i = 0; i < bookings.length; i++) {
+        const { professionalId, service, startDateTime } = bookings[i];
+        const workingHours = await this.WorkingSchedule.findOne({ businessId });
+        if (!workingHours) throw new BadRequestException(ErrorResponseMessages.NO_WORKING_HOURS);
+        const professional = await this.Professional.findById(professionalId);
+        if (!professional) throw new BadRequestException(ErrorResponseMessages.PROFESSIONAL_NOT_EXISTS);
+        // Check if business works on that day
+        const weekDay = this.dateHelper.dayFromDate(startDateTime);
+        const weekDaySchedule = workingHours.schedule.find(o => o.day === weekDay);
+        if (!weekDaySchedule) throw new BadRequestException(`${ErrorResponseMessages.NO_WORK_ON_DAY} ${weekDay}`);
+        // Compare times -> start time should be in between working hours
+        if (!this.dateHelper.isBookingTimeValid(weekDaySchedule.startTime, weekDaySchedule.endTime, startDateTime)) throw new BadRequestException(ErrorResponseMessages.INVALID_BOOKING_TIME);
+        // Check if total duration of booking is in business working days
+        const serviceExists = await this.Service.findById(service);
+        if (!serviceExists) throw new BadRequestException(ErrorResponseMessages.NOT_SERVICE);
+        const endDateTime = this.dateHelper.bookingEndTimeCalculator(startDateTime, serviceExists.durationEnding);
+        if (!this.dateHelper.isValidTotalDuration(weekDaySchedule.startTime, weekDaySchedule.endTime, endDateTime)) {
+          throw new BadRequestException(ErrorResponseMessages.BOOKING_EXCEEDING_BUSINESS);
+        }
+        // Check if service is offered by that professional
+        const serviceId: any = new Mongoose.Types.ObjectId(service);
+        if (!professional.services.includes(serviceId)) throw new BadRequestException(ErrorResponseMessages.SERVICE_NOT_OFFERED);
+        // Check if professional is available on that day
+        const professionalWorkingSchedule = professional.schedule.find(o => o.day === weekDay && o.type === ScheduleTypeEnums.Work);
+        if (!professionalWorkingSchedule) throw new BadRequestException(`${ErrorResponseMessages.PROFESSIONAL_NOT_AVAILABLE} ${weekDay}`);
+        // Check if professional is available on that start end time (Work schedule for a professional will only be one but can be multiple breaks)
+        const professionalBreakSchedule = professional.schedule.filter((obj) => {
+          return obj.day === weekDay && obj.type === ScheduleTypeEnums.Break;
+        });
+        if (!this.dateHelper.isProfessionalAvailable(professionalWorkingSchedule, professionalBreakSchedule, startDateTime, endDateTime)) {
+          throw new BadRequestException(`${ErrorResponseMessages.PROFESSIONAL_NOT_AVAILABLE} this booking time`);
+        }
+        // DB clash find query
+        const matchingQuery =
           {
-            $and: [{ "startDateTime": { $lte: startDateTime } },
-              { "endDateTime": { $gte: startDateTime } }]
-          }, {
-            $and: [{ "startDateTime": { $lte: endDateTime } },
-              { "endDateTime": { $gte: endDateTime } }]
-          }, {
-            $and: [{ "startDateTime": { $gte: startDateTime } },
-              { "endDateTime": { $lte: endDateTime } }]
-          }
-        ]
-      };
-    const bookingExists = await this.Booking.findOne(matchingQuery);
-    if (bookingExists) throw new BadRequestException(ErrorResponseMessages.BOOKING_CLASH);
-    const booking = new this.Booking({
-      customerId,
-      businessId,
-      professionalId,
-      service,
-      startDateTime,
-      endDateTime,
-      status: BookingStatusEnums.Confirmed
-    });
-    await booking.save();
-    return { message: SuccessResponseMessages.SUCCESS_GENERAL, data: { booking } };
+            businessId,
+            professionalId,
+            status: BookingStatusEnums.Confirmed,
+            $or: [
+              {
+                $and: [{ "startDateTime": { $lte: startDateTime } },
+                  { "endDateTime": { $gte: startDateTime } }]
+              }, {
+                $and: [{ "startDateTime": { $lte: endDateTime } },
+                  { "endDateTime": { $gte: endDateTime } }]
+              }, {
+                $and: [{ "startDateTime": { $gte: startDateTime } },
+                  { "endDateTime": { $lte: endDateTime } }]
+              }
+            ]
+          };
+        const bookingExists = await this.Booking.findOne(matchingQuery);
+        if (bookingExists) throw new BadRequestException(ErrorResponseMessages.BOOKING_CLASH);
+        const booking = new this.Booking({
+          customerId,
+          businessId,
+          professionalId,
+          service,
+          startDateTime,
+          endDateTime,
+          status: BookingStatusEnums.Confirmed
+        });
+        await booking.save();
+        allBookings.push(booking);
+      }
+    }
+    return { message: SuccessResponseMessages.SUCCESS_GENERAL, data: { allBookings } };
   }
 
   // Reschedule booking
@@ -443,7 +449,7 @@ export class BookingService {
     return { message: SuccessResponseMessages.SUCCESS_GENERAL, data, page, lastPage, total };
   }
 
-  // Booking statistics
+  // Booking statistics - for business
   async getBookingStats(businessId: number) {
     const matchingQuery: any = { businessId };
     const data = await this.Booking.aggregate([
@@ -512,6 +518,18 @@ export class BookingService {
     const total: number = await this.Booking.count(matchingQuery);
     const lastPage = Math.ceil(total / limit);
     return { message: SuccessResponseMessages.SUCCESS_GENERAL, data, page, lastPage, total };
+  }
+
+  // Booking statistics - for customer
+  async getCustomerBookingStats(customerId: string) {
+    const customer = await this.User.findById(customerId);
+    if (!customer) throw new BadRequestException(ErrorResponseMessages.USER_NOT_EXISTS);
+    const matchingQuery: any = { customerId: customer._id };
+    const data = await this.Booking.aggregate([
+      { $match: matchingQuery },
+      { "$group": { _id: "$status", count: { $sum: 1 } } }
+    ]);
+    return { message: SuccessResponseMessages.SUCCESS_GENERAL, data };
   }
 
 }
