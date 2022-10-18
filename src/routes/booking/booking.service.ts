@@ -22,9 +22,10 @@ export class BookingService {
 
   // Create booking
   async createBooking(businessId: number, customerId: string, bookingObj: CreateBookingDto) {
-    const { professionalId, service, startDateTime } = bookingObj;
     const customer = await this.User.findById(customerId);
     if (!customer) throw new BadRequestException(ErrorResponseMessages.USER_NOT_EXISTS);
+
+    const { professionalId, service, startDateTime } = bookingObj;
     const workingHours = await this.WorkingSchedule.findOne({ businessId });
     if (!workingHours) throw new BadRequestException(ErrorResponseMessages.NO_WORKING_HOURS);
     const professional = await this.Professional.findById(professionalId);
@@ -395,7 +396,10 @@ export class BookingService {
         }
       },
       {
-        $unwind: "$professional"
+        $unwind: {
+          path: "$professional",
+          preserveNullAndEmptyArrays: true
+        }
       },
       {
         $lookup: {
@@ -406,7 +410,10 @@ export class BookingService {
         }
       },
       {
-        $unwind: "$service"
+        $unwind: {
+          path: "$service",
+          preserveNullAndEmptyArrays: true
+        }
       },
       {
         $project: {
@@ -466,7 +473,10 @@ export class BookingService {
         }
       },
       {
-        $unwind: "$professional"
+        $unwind: {
+          path: "$professional",
+          preserveNullAndEmptyArrays: true
+        }
       },
       {
         $lookup: {
@@ -477,7 +487,10 @@ export class BookingService {
         }
       },
       {
-        $unwind: "$service"
+        $unwind: {
+          path: "$service",
+          preserveNullAndEmptyArrays: true
+        }
       },
       {
         $project: {

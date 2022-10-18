@@ -5,9 +5,6 @@ import { BusinessIdDto } from "../../dto/query-params";
 import { ValidateMongoId } from "../../common/pipes";
 import { CustomerService } from "./customer.service";
 import { SignupDto } from "../../dto/auth";
-import { ChangePasswordDto } from "../../dto/customer";
-import { Public } from "../../common/decorators";
-import { FilterBookingsDto } from "../../dto/booking";
 import { PaginationParamsDto } from "../../dto/pagination";
 
 
@@ -32,9 +29,8 @@ export class CustomerController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth("JWT-auth")
   @ApiResponse({ status: 200, description: SuccessResponseMessages.UPDATED })
-  async changeCustomerPassword(@Query("customerId", ValidateMongoId) customerId: string,
-                               @Body() reqBody: ChangePasswordDto) {
-    return await this.customerService.changeCustomerPassword(customerId, reqBody);
+  async changeCustomerPassword(@Query("customerId", ValidateMongoId) customerId: string) {
+    return await this.customerService.changeCustomerPassword(customerId);
   }
 
   @Post("issue-promo-code")

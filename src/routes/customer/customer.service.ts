@@ -33,11 +33,12 @@ export class CustomerService {
   }
 
   // Reset password
-  async changeCustomerPassword(customerId: string, passwordObj: ChangePasswordDto) {
+  async changeCustomerPassword(customerId: string) {
     const customer = await this.User.findById(customerId);
     if (!customer) throw new BadRequestException(ErrorResponseMessages.NOT_EXISTS);
-    const { password } = passwordObj;
-    customer.password = await this.generator.hashData(password);
+    const randomPassword = this.generator.randomString(8);
+    // To be texted to users phone
+    customer.password = await this.generator.hashData(randomPassword);
     await customer.save();
     return { message: SuccessResponseMessages.UPDATED, data: { customer } };
   }
