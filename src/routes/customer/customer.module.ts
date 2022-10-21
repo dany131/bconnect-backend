@@ -3,8 +3,9 @@ import { CustomerController } from "./customer.controller";
 import { CustomerService } from "./customer.service";
 import { MongooseModule } from "@nestjs/mongoose";
 import { CustomerPromoCodeSchema, PromoCodeSchema, UserSchema } from "../../models/schemas";
-import { GeneratorsHelper } from "../../common/helpers";
+import { GeneratorsHelper, RemoteHelper } from "../../common/helpers";
 import { JwtModule } from "@nestjs/jwt";
+import { HttpModule } from "@nestjs/axios";
 
 
 @Module({
@@ -14,9 +15,10 @@ import { JwtModule } from "@nestjs/jwt";
     { name: "CustomerPromoCode", schema: CustomerPromoCodeSchema }
 
   ]),
+    HttpModule,
     JwtModule.register({})],
   controllers: [CustomerController],
-  providers: [CustomerService, GeneratorsHelper]
+  providers: [CustomerService, GeneratorsHelper, RemoteHelper]
 })
 export class CustomerModule {
 }

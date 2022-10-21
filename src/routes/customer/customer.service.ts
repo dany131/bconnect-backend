@@ -5,7 +5,7 @@ import { Model } from "mongoose";
 import { CustomerPromoCodeModel, PromoCodeModel, UserModel } from "../../models/schemas";
 import { ErrorResponseMessages, SuccessResponseMessages } from "../../common/messages";
 import { ChangePasswordDto } from "../../dto/customer";
-import { GeneratorsHelper } from "../../common/helpers";
+import { GeneratorsHelper, RemoteHelper } from "../../common/helpers";
 
 
 @Injectable()
@@ -13,7 +13,8 @@ export class CustomerService {
   constructor(@InjectModel("User") private readonly User: Model<UserModel>,
               @InjectModel("PromoCode") private readonly PromoCode: Model<PromoCodeModel>,
               @InjectModel("CustomerPromoCode") private readonly CustomerPromoCode: Model<CustomerPromoCodeModel>,
-              private generator: GeneratorsHelper) {
+              private generator: GeneratorsHelper,
+              private readonly remoteHelper: RemoteHelper) {
   }
 
   // Update customer details
@@ -32,7 +33,7 @@ export class CustomerService {
     return { message: SuccessResponseMessages.UPDATED, data: { customer } };
   }
 
-  // Reset password
+  // Reset password - Sends message notification
   async changeCustomerPassword(customerId: string) {
     const customer = await this.User.findById(customerId);
     if (!customer) throw new BadRequestException(ErrorResponseMessages.NOT_EXISTS);
@@ -40,6 +41,16 @@ export class CustomerService {
     // To be texted to users phone
     customer.password = await this.generator.hashData(randomPassword);
     await customer.save();
+    try {
+      const remoteSession = await this.remoteHelper.createSession();
+      const businessLoginSession = await this.remoteHelper.businessLogin(remoteSession.xsrfToken, remoteSession.laravelToken,
+        "test@test.com", "testpass123");
+      await this.remoteHelper.sendMessageNotification(businessLoginSession, "Password changed",
+        `Your account password is: ${randomPassword}`, customer.businessId, customer.phoneNumber);
+    } catch (e) {
+      console.log(e);
+    }
+    customer.password = undefined;
     return { message: SuccessResponseMessages.UPDATED, data: { customer } };
   }
 
