@@ -22,13 +22,16 @@ export const BookingSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  endDateTime: {
+  endDateTime: {          // UTC - ISO format
     type: String,
     required: true
   },
   status: {
     type: String,
     required: true
+  },
+  timezone: {
+    type: String
   }
 }, { timestamps: true });
 
@@ -41,4 +44,5 @@ export interface BookingModel extends mongoose.Document {
   startDateTime: string;
   endDateTime: string;
   status: string;
+  timezone: string;
 }

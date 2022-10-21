@@ -4,9 +4,10 @@ import { Model } from "mongoose";
 import { ErrorResponseMessages, SuccessResponseMessages } from "../../common/messages";
 import { BookingModel, ProfessionalModel, ServiceModel, UserModel, WorkingScheduleModel } from "../../models/schemas";
 import { CreateBookingDto, RescheduleBookingDto } from "../../dto/booking";
-import { DateHelper } from "../../common/helpers";
+import { DateHelper, RemoteHelper } from "../../common/helpers";
 import Mongoose from "mongoose";
 import { BookingStatusEnums, ScheduleTypeEnums } from "../../common/enums";
+import { HttpService } from "@nestjs/axios";
 
 
 @Injectable()
@@ -17,7 +18,9 @@ export class BookingService {
               @InjectModel("WorkingSchedule") private readonly WorkingSchedule: Model<WorkingScheduleModel>,
               @InjectModel("Professional") private readonly Professional: Model<ProfessionalModel>,
               @InjectModel("Service") private readonly Service: Model<ServiceModel>,
-              private readonly dateHelper: DateHelper) {
+              private readonly dateHelper: DateHelper,
+              private readonly httpService: HttpService,
+              private readonly remoteHelper: RemoteHelper) {
   }
 
   // Create booking
@@ -28,7 +31,8 @@ export class BookingService {
     let allBookings = [];
     if (bookings.length) {
       for (let i = 0; i < bookings.length; i++) {
-        const { professionalId, service, startDateTime } = bookings[i];
+        const { professionalId, service, timezone } = bookings[i];
+        let { startDateTime } = bookings[i];
         const workingHours = await this.WorkingSchedule.findOne({ businessId });
         if (!workingHours) throw new BadRequestException(ErrorResponseMessages.NO_WORKING_HOURS);
         const professional = await this.Professional.findById(professionalId);
@@ -42,7 +46,7 @@ export class BookingService {
         // Check if total duration of booking is in business working days
         const serviceExists = await this.Service.findById(service);
         if (!serviceExists) throw new BadRequestException(ErrorResponseMessages.NOT_SERVICE);
-        const endDateTime = this.dateHelper.bookingEndTimeCalculator(startDateTime, serviceExists.durationEnding);
+        let endDateTime = this.dateHelper.bookingEndTimeCalculator(startDateTime, serviceExists.durationEnding, timezone);
         if (!this.dateHelper.isValidTotalDuration(weekDaySchedule.startTime, weekDaySchedule.endTime, endDateTime)) {
           throw new BadRequestException(ErrorResponseMessages.BOOKING_EXCEEDING_BUSINESS);
         }
@@ -60,24 +64,26 @@ export class BookingService {
           throw new BadRequestException(`${ErrorResponseMessages.PROFESSIONAL_NOT_AVAILABLE} this booking time`);
         }
         // DB clash find query
-        const matchingQuery =
-          {
-            businessId,
-            professionalId,
-            status: BookingStatusEnums.Confirmed,
-            $or: [
-              {
-                $and: [{ "startDateTime": { $lte: startDateTime } },
-                  { "endDateTime": { $gte: startDateTime } }]
-              }, {
-                $and: [{ "startDateTime": { $lte: endDateTime } },
-                  { "endDateTime": { $gte: endDateTime } }]
-              }, {
-                $and: [{ "startDateTime": { $gte: startDateTime } },
-                  { "endDateTime": { $lte: endDateTime } }]
-              }
-            ]
-          };
+        // Convert startDateTime to UTC for DB
+        startDateTime = this.dateHelper.utcConverter(startDateTime);
+        endDateTime = this.dateHelper.utcConverter(endDateTime);
+        const matchingQuery = {
+          businessId,
+          professionalId,
+          status: BookingStatusEnums.Confirmed,
+          $or: [
+            {
+              $and: [{ "startDateTime": { $lt: startDateTime } },
+                { "endDateTime": { $gt: startDateTime } }]
+            }, {
+              $and: [{ "startDateTime": { $lt: endDateTime } },
+                { "endDateTime": { $gt: endDateTime } }]
+            }, {
+              $and: [{ "startDateTime": { $gte: startDateTime } },
+                { "endDateTime": { $lte: endDateTime } }]
+            }
+          ]
+        };
         const bookingExists = await this.Booking.findOne(matchingQuery);
         if (bookingExists) throw new BadRequestException(ErrorResponseMessages.BOOKING_CLASH);
         const booking = new this.Booking({
@@ -87,10 +93,21 @@ export class BookingService {
           service,
           startDateTime,
           endDateTime,
-          status: BookingStatusEnums.Confirmed
+          status: BookingStatusEnums.Confirmed,
+          timezone
         });
         await booking.save();
         allBookings.push(booking);
+      }
+      // Send msg confirmation
+      try {
+        const remoteSession = await this.remoteHelper.createSession();
+        const businessLoginSession = await this.remoteHelper.businessLogin(remoteSession.xsrfToken, remoteSession.laravelToken,
+          "test@test.com", "testpass123");
+        await this.remoteHelper.sendMessageNotification(businessLoginSession, "Booking status",
+          "Your booking has been confirmed", businessId, customer.phoneNumber);
+      } catch (e) {
+        console.log(e);
       }
     }
     return { message: SuccessResponseMessages.SUCCESS_GENERAL, data: { allBookings } };
@@ -100,7 +117,7 @@ export class BookingService {
   async rescheduleBooking(bookingId: string, bookingObj: RescheduleBookingDto) {
     const booking = await this.Booking.findById(bookingId);
     if (!booking) throw new BadRequestException(ErrorResponseMessages.BOOKING_EXISTS);
-    const { startDateTime } = bookingObj;
+    let { startDateTime, timezone } = bookingObj;
     const workingHours = await this.WorkingSchedule.findOne({ businessId: booking.businessId });
     if (!workingHours) throw new BadRequestException(ErrorResponseMessages.NO_WORKING_HOURS);
     const professional = await this.Professional.findById(booking.professionalId);
@@ -114,7 +131,7 @@ export class BookingService {
     // Check if total duration of booking is in business working days
     const serviceExists = await this.Service.findById(booking.service);
     if (!serviceExists) throw new BadRequestException(ErrorResponseMessages.NOT_SERVICE);
-    const endDateTime = this.dateHelper.bookingEndTimeCalculator(startDateTime, serviceExists.durationEnding);
+    let endDateTime = this.dateHelper.bookingEndTimeCalculator(startDateTime, serviceExists.durationEnding, timezone);
     if (!this.dateHelper.isValidTotalDuration(weekDaySchedule.startTime, weekDaySchedule.endTime, endDateTime)) {
       throw new BadRequestException(ErrorResponseMessages.BOOKING_EXCEEDING_BUSINESS);
     }
@@ -131,17 +148,20 @@ export class BookingService {
       throw new BadRequestException(`${ErrorResponseMessages.PROFESSIONAL_NOT_AVAILABLE} this booking time`);
     }
     // DB clash find query
+    // Convert startDateTime to UTC for DB
+    startDateTime = this.dateHelper.utcConverter(startDateTime);
+    endDateTime = this.dateHelper.utcConverter(endDateTime);
     const matchingQuery = {
       businessId: booking.businessId,
       professionalId: booking.professionalId,
       status: BookingStatusEnums.Confirmed,
       $or: [
         {
-          $and: [{ "startDateTime": { $lte: startDateTime } },
-            { "endDateTime": { $gte: startDateTime } }]
+          $and: [{ "startDateTime": { $lt: startDateTime } },
+            { "endDateTime": { $gt: startDateTime } }]
         }, {
-          $and: [{ "startDateTime": { $lte: endDateTime } },
-            { "endDateTime": { $gte: endDateTime } }]
+          $and: [{ "startDateTime": { $lt: endDateTime } },
+            { "endDateTime": { $gt: endDateTime } }]
         }, {
           $and: [{ "startDateTime": { $gte: startDateTime } },
             { "endDateTime": { $lte: endDateTime } }]
@@ -152,7 +172,19 @@ export class BookingService {
     if (bookingExists) throw new BadRequestException(ErrorResponseMessages.BOOKING_CLASH);
     booking.startDateTime = startDateTime;
     booking.endDateTime = endDateTime;
+    booking.timezone = timezone;
     await booking.save();
+    // Send msg confirmation
+    const customer = await this.User.findById(booking.customerId);
+    try {
+      const remoteSession = await this.remoteHelper.createSession();
+      const businessLoginSession = await this.remoteHelper.businessLogin(remoteSession.xsrfToken, remoteSession.laravelToken,
+        "test@test.com", "testpass123");
+      await this.remoteHelper.sendMessageNotification(businessLoginSession, "Booking status",
+        "Your booking has been rescheduled", booking.businessId, customer.phoneNumber);
+    } catch (e) {
+      console.log(e);
+    }
     return { message: SuccessResponseMessages.SUCCESS_GENERAL, data: { booking } };
   }
 

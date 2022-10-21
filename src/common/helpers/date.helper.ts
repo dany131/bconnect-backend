@@ -26,8 +26,8 @@ export class DateHelper {
     return (bookingStartInMillis >= startInMillis && bookingStartInMillis <= endInMillis);
   }
 
-  public bookingEndTimeCalculator(bookingStartTime: string, serviceDuration: number): string {
-    return DateTime.fromISO(bookingStartTime).plus({ minute: serviceDuration }).toUTC().toISO();
+  public bookingEndTimeCalculator(bookingStartTime: string, serviceDuration: number, zone: string): string {
+    return DateTime.fromISO(bookingStartTime, { zone }).plus({ minute: serviceDuration }).toISO();
   }
 
   // Is total duration in business hours
@@ -90,7 +90,6 @@ export class DateHelper {
   }
 
   // Validate professional work schedule in business working hours
-
   public isValidWorkSchedule(professionalSchedule: any, businessSchedule: any) {
     let isValid = true;
     if (professionalSchedule.length) {
@@ -114,6 +113,12 @@ export class DateHelper {
       }
     }
     return isValid;
+  }
+
+  // local time to UTC converter
+  public utcConverter(localISOTime: string): string {
+    const dateTime = DateTime.fromISO(localISOTime, { zone: "utc" });
+    return dateTime.toISO();
   }
 
 }

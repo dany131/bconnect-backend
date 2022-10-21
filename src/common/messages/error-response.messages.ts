@@ -23,5 +23,10 @@ export const ErrorResponseMessages = {
   BOOKING_EXCEEDING_BUSINESS: "Your booking is exceeding business working hours",
   BOOKING_CLASH: "Booking clash found",
   BOOKING_EXISTS: "Booking does not exists",
-  BUSINESS_HOURS_NOT_AVAILABLE: "Working hours not available for these timings"
+  BUSINESS_HOURS_NOT_AVAILABLE: "Working hours not available for these timings",
+  INVALID_DATA: "Missing fields or phone number already used",
+  ISSUE_AT_THIS_TIME: "There was some issue at this time, please try again later",
+  PHONE_ALREADY_USED: "Phone number already in use, please use different phone number or contact admin",
+  SOME_PROBLEM: "There was some problem at this time, Please try again later"
+
 };

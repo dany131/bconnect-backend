@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { UserModel } from "../../models/schemas";
-import { GeneratorsHelper } from "../../common/helpers";
+import { DateHelper, GeneratorsHelper, RemoteHelper } from "../../common/helpers";
 import { ErrorResponseMessages, SuccessResponseMessages } from "../../common/messages";
 import { LoginDto, SignupDto } from "../../dto/auth";
 import { HttpService } from "@nestjs/axios";
@@ -17,7 +17,9 @@ export class AuthService {
   constructor(@InjectModel("User") private readonly User: Model<UserModel>,
               private generator: GeneratorsHelper,
               private readonly httpService: HttpService,
-              private readonly configService: ConfigService) {
+              private readonly configService: ConfigService,
+              private readonly dateHelper: DateHelper,
+              private readonly remoteHelper: RemoteHelper) {
   }
 
   // Customer will be unique for a business
@@ -25,7 +27,8 @@ export class AuthService {
     const { userName, email, password, phoneNumber } = signUpObj;
     const userExists = await this.User.findOne({ email, businessId });
     if (userExists) throw new BadRequestException(ErrorResponseMessages.EMAIL_EXISTS);
-    const newUser: any = new this.User({
+    let newUser: any;
+    newUser = new this.User({
       userName,
       email,
       password,
@@ -35,10 +38,26 @@ export class AuthService {
     });
     newUser.password = await this.generator.hashData(password);
     await newUser.save();
-    const tokens = await this.generator.getTokens(newUser._id.toString(), newUser.createdAt);
-    newUser.password = undefined;
-    newUser.verificationCode = undefined;
-    return { message: SuccessResponseMessages.SIGNUP, data: { user: newUser, tokens } };
+    // Create remote session
+    const remoteSession = await this.remoteHelper.createSession();
+    const userNames = userName.split(" ");
+    const firstName = (userNames[0]) ? userNames[0] : ".";
+    const lastName = (userNames[1]) ? userNames[1] : ".";
+    const utcNow = await this.dateHelper.utcDateTimeNow();
+    const date = utcNow.split("T")[0];
+    const time = utcNow.split("T")[1].split(".")[0];
+    try {
+      // Create remote subscriber
+      await this.remoteHelper.createRemoteCustomer(remoteSession.xsrfToken, remoteSession.laravelToken,
+        firstName, lastName, phoneNumber, businessId, `${date} ${time}`);
+      const tokens = await this.generator.getTokens(newUser._id.toString(), newUser.createdAt);
+      newUser.password = undefined;
+      newUser.verificationCode = undefined;
+      return { message: SuccessResponseMessages.SIGNUP, data: { user: newUser, tokens } };
+    } catch (error) {
+      await this.User.deleteOne({ _id: newUser._id });
+      throw new BadRequestException(ErrorResponseMessages.INVALID_DATA);
+    }
   }
 
   async login(businessId: number, loginObj: LoginDto) {
@@ -54,33 +73,12 @@ export class AuthService {
       user.isBusiness = false;
       tokens = await this.generator.getTokens(user._id.toString(), user.createdAt);
     } else {
-      const remoteBaseUrl = this.configService.get<string>("REMOTE_BASE_URL");
-      const session = await this.httpService.axiosRef.get(`${remoteBaseUrl}/sanctum/csrf-cookie`);
-      const xsrf = session.headers["set-cookie"][0];
-      const xsrfOnly = xsrf.split(";")[0];
-      const token = xsrfOnly.split("%")[0];
-      const xsrfToken = token.split("=")[1];
-      const laravelSession = session.headers["set-cookie"][1];
-      const laravelToken = laravelSession.split(";")[0];
-      // this.httpService.axiosRef.defaults.headers.common["X-XSRF-TOKEN"] = newToken;
-      // this.httpService.axiosRef.defaults.headers["Cookie"] = `${xsrfToken}; ${laravelToken}`;
+      const remoteSession = await this.remoteHelper.createSession();
       try {
-        const response = await this.httpService.axiosRef.post(`https://api.bconnect-staging.com/api/login`, {
-            email,
-            password
-          },
-          {
-            headers: {
-              "X-XSRF-TOKEN": `${xsrfToken}`,
-              "Content-Type": "application/json",
-              "Cookie": `${xsrfToken}; ${laravelToken};`
-            }
-          });
-        if (response.status === 201) {
-          user = response.data.businessData;
-          user.isBusiness = true;
-          tokens = await this.generator.getTokens(user.id.toString(), user.created_at);
-        }
+        const businessLogin = await this.remoteHelper.businessLogin(remoteSession.xsrfToken, remoteSession.laravelToken, email, password);
+        user = businessLogin.data.businessData;
+        user.isBusiness = true;
+        tokens = await this.generator.getTokens(user.id.toString(), user.created_at);
       } catch (e) {
         throw new BadRequestException(ErrorResponseMessages.INVALID_PASSWORD);
       }

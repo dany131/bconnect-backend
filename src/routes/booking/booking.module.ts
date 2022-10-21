@@ -9,7 +9,8 @@ import {
   UserSchema,
   WorkingScheduleSchema
 } from "../../models/schemas";
-import { DateHelper } from "../../common/helpers";
+import { DateHelper, RemoteHelper } from "../../common/helpers";
+import { HttpModule } from "@nestjs/axios";
 
 
 @Module({
@@ -19,9 +20,9 @@ import { DateHelper } from "../../common/helpers";
     { name: "Professional", schema: ProfessionalSchema },
     { name: "Service", schema: ServiceSchema },
     { name: "WorkingSchedule", schema: WorkingScheduleSchema }
-  ])],
+  ]), HttpModule],
   controllers: [BookingController],
-  providers: [BookingService, DateHelper]
+  providers: [BookingService, DateHelper, RemoteHelper]
 })
 export class BookingModule {
 }
