@@ -4,8 +4,8 @@ import { SuccessResponseMessages } from "../../common/messages";
 import { BusinessIdDto } from "../../dto/query-params";
 import { ValidateMongoId } from "../../common/pipes";
 import { CustomerService } from "./customer.service";
-import { SignupDto } from "../../dto/auth";
 import { PaginationParamsDto } from "../../dto/pagination";
+import { UpdateCustomerDetailsDto } from "../../dto/customer";
 
 
 @ApiTags("Customer")
@@ -21,7 +21,7 @@ export class CustomerController {
   @ApiResponse({ status: 200, description: SuccessResponseMessages.SUCCESS_GENERAL })
   async updateCustomerDetails(@Query() query: BusinessIdDto,
                               @Query("customerId", ValidateMongoId) customerId: string,
-                              @Body() reqBody: SignupDto) {
+                              @Body() reqBody: UpdateCustomerDetailsDto) {
     return await this.customerService.updateCustomerDetails(query.businessId, customerId, reqBody);
   }
 

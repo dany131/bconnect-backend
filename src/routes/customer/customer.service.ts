@@ -4,7 +4,7 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { CustomerPromoCodeModel, PromoCodeModel, UserModel } from "../../models/schemas";
 import { ErrorResponseMessages, SuccessResponseMessages } from "../../common/messages";
-import { ChangePasswordDto } from "../../dto/customer";
+import { ChangePasswordDto, UpdateCustomerDetailsDto } from "../../dto/customer";
 import { GeneratorsHelper, RemoteHelper } from "../../common/helpers";
 
 
@@ -18,7 +18,7 @@ export class CustomerService {
   }
 
   // Update customer details
-  async updateCustomerDetails(businessId: number, customerId: string, userObj: SignupDto) {
+  async updateCustomerDetails(businessId: number, customerId: string, userObj: UpdateCustomerDetailsDto) {
     const customer = await this.User.findById(customerId);
     if (!customer) throw new BadRequestException(ErrorResponseMessages.NOT_EXISTS);
     const { userName, email, phoneNumber } = userObj;
