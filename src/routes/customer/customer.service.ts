@@ -1,11 +1,10 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { SignupDto } from "../../dto/auth";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
-import { CustomerPromoCodeModel, PromoCodeModel, UserModel } from "../../models/schemas";
+import { BookingModel, CustomerPromoCodeModel, PromoCodeModel, UserModel } from "../../models/schemas";
 import { ErrorResponseMessages, SuccessResponseMessages } from "../../common/messages";
-import { ChangePasswordDto, UpdateCustomerDetailsDto } from "../../dto/customer";
-import { GeneratorsHelper, RemoteHelper } from "../../common/helpers";
+import { UpdateCustomerDetailsDto } from "../../dto/customer";
+import { GeneratorsHelper, RegexHelper, RemoteHelper } from "../../common/helpers";
 
 
 @Injectable()
@@ -13,7 +12,9 @@ export class CustomerService {
   constructor(@InjectModel("User") private readonly User: Model<UserModel>,
               @InjectModel("PromoCode") private readonly PromoCode: Model<PromoCodeModel>,
               @InjectModel("CustomerPromoCode") private readonly CustomerPromoCode: Model<CustomerPromoCodeModel>,
+              @InjectModel("Booking") private readonly Booking: Model<BookingModel>,
               private generator: GeneratorsHelper,
+              private readonly regexHelper: RegexHelper,
               private readonly remoteHelper: RemoteHelper) {
   }
 
@@ -73,4 +74,43 @@ export class CustomerService {
     return { message: SuccessResponseMessages.SUCCESS_GENERAL, data, page, lastPage, total };
   }
 
+  // Get recent 3 bookings
+  async getRecentBookings(customerId: string) {
+    const data = await this.Booking.find({ customerId }).sort({ createdAt: -1 }).limit(3);
+    return { message: SuccessResponseMessages.SUCCESS_GENERAL, data };
+  }
+
+  // Search customer
+  async searchCustomer(searchQuery: string, page: number, limit: number) {
+    const regex = new RegExp(this.regexHelper.escapeRegex(searchQuery), "gi");
+    let matchQuery: any = { $or: [{ userName: { $regex: regex } }, { email: { $regex: regex } }] };
+    const data = await this.User.find(matchQuery).sort({ startDateTime: 1 }).skip((page - 1) * limit).limit(limit);
+    const total: number = await this.User.count(matchQuery);
+    const lastPage = Math.ceil(total / limit);
+    return { message: SuccessResponseMessages.SUCCESS_GENERAL, data, page, lastPage, total };
+  }
+
 }
+
+//exports.searchByName = async(req, res) => {
+//     try {
+//         const errors = validationResult(req);
+//         if(!errors.isEmpty()) return res.status(400).json({message:errors.array()[0].msg});
+//         const page = parseInt(req.query.page);
+//         const limit = parseInt(req.query.limit);
+//         // Search through regex handles fuzzy search (Works on partial text search)
+//         const regex = new RegExp(generators.escapeRegex(req.query.searchQuery), 'gi');
+//         const data = await Listing.find({name:{$regex:regex}})
+//             .select(["name", "location", "thumbnail", "isPublished"]).skip((page - 1) * limit).limit(limit);
+//         // Search through mongo text search (Works on full text search)
+//         // const data = await Listing.find(
+//         //     {$text:{$search:`${req.query.searchQuery}`}},
+//         //     {score:{$meta:"textScore"}}).select(["name", "location", "thumbnail", "isPublished"]).sort({score:{$meta:'textScore'}}).skip((page - 1) * limit).limit(limit);
+//         const total = await Listing.count({$text:{$search:req.query.searchQuery}});
+//         const lastPage = Math.ceil(total / limit);
+//         return res.status(200).json({message:"Search results", data, page, lastPage, total});
+//     } catch(error) {
+//         console.log(error);
+//         return res.status(500).json({message:"Something went wrong"});
+//     }
+// };

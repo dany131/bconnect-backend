@@ -5,7 +5,7 @@ import { BusinessIdDto } from "../../dto/query-params";
 import { ValidateMongoId } from "../../common/pipes";
 import { CustomerService } from "./customer.service";
 import { PaginationParamsDto } from "../../dto/pagination";
-import { UpdateCustomerDetailsDto } from "../../dto/customer";
+import { SearchCustomerDto, UpdateCustomerDetailsDto } from "../../dto/customer";
 
 
 @ApiTags("Customer")
@@ -49,6 +49,21 @@ export class CustomerController {
   async getBusinessCustomers(@Query() queryBusiness: BusinessIdDto,
                              @Query() query: PaginationParamsDto) {
     return await this.customerService.getBusinessCustomers(queryBusiness.businessId, query.page, query.limit);
+  }
+
+  @Get("recent")
+  @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: 200, description: SuccessResponseMessages.SUCCESS_GENERAL })
+  async getRecentBookings(@Query("customerId", ValidateMongoId) customerId: string) {
+    return await this.customerService.getRecentBookings(customerId);
+  }
+
+  @Get("search")
+  @HttpCode(HttpStatus.OK)
+  @ApiResponse({ status: 200, description: SuccessResponseMessages.SUCCESS_GENERAL })
+  async searchCustomer(@Query() query: SearchCustomerDto,
+                       @Query() pagination: PaginationParamsDto) {
+    return await this.customerService.searchCustomer(query.searchQuery, pagination.page, pagination.limit);
   }
 
 }
