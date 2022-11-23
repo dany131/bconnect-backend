@@ -76,7 +76,80 @@ export class CustomerService {
 
   // Get recent 3 bookings
   async getRecentBookings(customerId: string) {
-    const data = await this.Booking.find({ customerId }).sort({ createdAt: -1 }).limit(3);
+    const user = await this.User.findById(customerId);
+    if (!user) throw new BadRequestException(ErrorResponseMessages.NOT_EXISTS);
+    const data: any = await this.Booking.aggregate([
+      {
+        $match: {
+          customerId: user._id
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "customerId",
+          foreignField: "_id",
+          as: "customer"
+        }
+      },
+      {
+        $unwind: {
+          path: "$customer",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+
+      {
+        $lookup: {
+          from: "professionals",
+          localField: "professionalId",
+          foreignField: "_id",
+          as: "professional"
+        }
+      },
+      {
+        $unwind: {
+          path: "$professional",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: "services",
+          localField: "service",
+          foreignField: "_id",
+          as: "service"
+        }
+      },
+      {
+        $unwind: {
+          path: "$service",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $project: {
+          "__v": 0,
+          "customer.password": 0,
+          "customer.phoneNumber": 0,
+          "customer.businessId": 0,
+          "customer.createdAt": 0,
+          "customer.updatedAt": 0,
+          "customer.__v": 0,
+          "professionalId": 0,
+          "customerId": 0,
+          "professional.schedule": 0,
+          "professional.createdAt": 0,
+          "professional.updatedAt": 0,
+          "professional.businessId": 0,
+          "professional.__v": 0,
+          "service.businessId": 0,
+          "service.createdAt": 0,
+          "service.updatedAt": 0,
+          "service.__v": 0
+        }
+      }
+    ]).sort({ createdAt: -1 }).limit(3);
     return { message: SuccessResponseMessages.SUCCESS_GENERAL, data };
   }
 
@@ -91,26 +164,3 @@ export class CustomerService {
   }
 
 }
-
-//exports.searchByName = async(req, res) => {
-//     try {
-//         const errors = validationResult(req);
-//         if(!errors.isEmpty()) return res.status(400).json({message:errors.array()[0].msg});
-//         const page = parseInt(req.query.page);
-//         const limit = parseInt(req.query.limit);
-//         // Search through regex handles fuzzy search (Works on partial text search)
-//         const regex = new RegExp(generators.escapeRegex(req.query.searchQuery), 'gi');
-//         const data = await Listing.find({name:{$regex:regex}})
-//             .select(["name", "location", "thumbnail", "isPublished"]).skip((page - 1) * limit).limit(limit);
-//         // Search through mongo text search (Works on full text search)
-//         // const data = await Listing.find(
-//         //     {$text:{$search:`${req.query.searchQuery}`}},
-//         //     {score:{$meta:"textScore"}}).select(["name", "location", "thumbnail", "isPublished"]).sort({score:{$meta:'textScore'}}).skip((page - 1) * limit).limit(limit);
-//         const total = await Listing.count({$text:{$search:req.query.searchQuery}});
-//         const lastPage = Math.ceil(total / limit);
-//         return res.status(200).json({message:"Search results", data, page, lastPage, total});
-//     } catch(error) {
-//         console.log(error);
-//         return res.status(500).json({message:"Something went wrong"});
-//     }
-// };

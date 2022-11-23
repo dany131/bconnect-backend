@@ -6,6 +6,7 @@ import { ValidateMongoId } from "../../common/pipes";
 import { CustomerService } from "./customer.service";
 import { PaginationParamsDto } from "../../dto/pagination";
 import { SearchCustomerDto, UpdateCustomerDetailsDto } from "../../dto/customer";
+import { Public } from "../../common/decorators";
 
 
 @ApiTags("Customer")
@@ -51,6 +52,7 @@ export class CustomerController {
     return await this.customerService.getBusinessCustomers(queryBusiness.businessId, query.page, query.limit);
   }
 
+  @Public()
   @Get("recent")
   @HttpCode(HttpStatus.OK)
   @ApiResponse({ status: 200, description: SuccessResponseMessages.SUCCESS_GENERAL })
